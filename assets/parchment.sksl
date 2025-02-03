@@ -1,0 +1,51 @@
+uniform float yOffset;  // External control of Y position
+uniform vec2 iResolution;
+
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+float fbm(vec2 p) {
+    float v = 0.0;
+    float a = 0.5;
+    for (int i = 0; i < 5; i++) {
+        v += a * noise(p);
+        p *= 2.0;
+        a *= 0.5;
+    }
+    return v;
+}
+
+vec3 parchmentColor(float value) {
+    return mix(vec3(0.9, 0.85, 0.7), vec3(0.8, 0.7, 0.5), value);
+}
+
+half4 main(float2 fragCoord) {
+    vec2 uv = fragCoord / iResolution;
+
+    // Apply user-specified vertical position with seamless wrapping
+    uv.y += yOffset;
+    uv.y = mod(uv.y, 1.0);  // Ensures seamless scrolling
+
+    float baseTexture = fbm(uv * 2500.0);
+    float creases = sin(uv.y * 20.0) * 0.05; // Subtle paper creases
+    float stains = fbm(uv * 40.0) * 0.5;    // Stains and aging effect
+
+    float paperTexture = baseTexture + creases - stains;
+    vec3 color = parchmentColor(paperTexture);
+
+    return half4(color, 1.0);
+}

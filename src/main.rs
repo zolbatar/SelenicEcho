@@ -1,12 +1,12 @@
-use std::process::exit;
-use std::time::{Duration, Instant};
-use sdl2::event::Event;
-use sdl2::video::GLProfile;
 use crate::app_state::AppState;
 use crate::skia::Skia;
+use sdl2::event::Event;
+use sdl2::video::GLProfile;
+use std::process::exit;
+use std::time::{Duration, Instant};
 
-mod skia;
 mod app_state;
+mod skia;
 
 fn main() {
     setup_sdl_skia()
@@ -80,7 +80,7 @@ fn setup_sdl_skia() {
         // Render!
         skia.set_matrix(&app_state.gfx);
         //map.render(&mut skia, &app_state);
-        skia.test(app_state.gfx.width, app_state.gfx.height);
+        // skia.test(app_state.gfx.width, app_state.gfx.height);
         unsafe {
             skia.flush();
         }

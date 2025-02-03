@@ -6,16 +6,18 @@ use skia_safe::gpu::gl::{FramebufferInfo, Interface};
 use skia_safe::gpu::surfaces::wrap_backend_render_target;
 use skia_safe::gpu::{ContextOptions, DirectContext};
 use skia_safe::image_filters::drop_shadow_only;
+use skia_safe::runtime_effect::RuntimeShaderBuilder;
 use skia_safe::textlayout::{
     FontCollection, ParagraphBuilder, ParagraphStyle, TextAlign, TextStyle, TypefaceFontProvider,
 };
 use skia_safe::{
-    gpu, Canvas, Color, Color4f, Contains, Data, FontMgr, FontStyle, ImageFilter, Paint,
+    gpu, Canvas, Color, Color4f, Contains, Data, FontMgr, FontStyle, ImageFilter, Matrix, Paint,
     PaintStyle, Point, Rect, RuntimeEffect, Shader, Surface, Vector,
 };
 
 static EBGARAMOND_TTF: &[u8] = include_bytes!("../assets/EBGaramond-VariableFont_wght.ttf");
 const NOISE_SKSL: &str = include_str!("../assets/noise.sksl");
+const PARCHMENT_SKSL: &str = include_str!("../assets/parchment.sksl");
 pub const NOISE_MIX: f32 = 0.075;
 pub const ELLIPSIS: &str = "\u{2026}";
 
@@ -30,6 +32,7 @@ pub struct Skia {
     pub drop_shadow: Option<ImageFilter>,
     pub drop_shadow_white: Option<ImageFilter>,
     noise_shader: RuntimeEffect,
+    parchment_shader: RuntimeEffect,
     pub surface: Surface,
     pub colour_background: Color,
 }
@@ -88,6 +91,9 @@ impl Skia {
         let noise_shader = RuntimeEffect::make_for_shader(NOISE_SKSL, None)
             .expect("Failed to make runtime effect");
 
+        let parchment_shader = RuntimeEffect::make_for_shader(PARCHMENT_SKSL, None)
+            .expect("Failed to make runtime effect");
+
         // Filters
         let drop_shadow = drop_shadow_only(
             Vector::new(1.5, 1.5),
@@ -120,6 +126,7 @@ impl Skia {
             drop_shadow,
             drop_shadow_white,
             noise_shader,
+            parchment_shader,
             colour_background: Color::from_argb(255, 53, 53, 53),
         }
     }
@@ -159,7 +166,8 @@ impl Skia {
         self.get_canvas().clear(skia_safe::Color::TRANSPARENT);
         let mut paint_background = Paint::default();
         paint_background.set_style(PaintStyle::Fill);
-        paint_background.set_shader(self.create_noise_shader(self.colour_background, NOISE_MIX));
+        paint_background.set_shader(self.create_parchment_shader(w as f32, h as f32, 0f32));
+//        paint_background.set_shader(self.create_noise_shader(self.colour_background, NOISE_MIX));
         self.get_canvas().draw_rect(
             Rect::from_xywh(0.0, 0.0, w as f32, h as f32),
             &paint_background,
@@ -317,6 +325,20 @@ impl Skia {
 
     pub fn reset_context(&mut self) {
         self.context.reset(None);
+    }
+
+    pub fn create_parchment_shader(&mut self, width: f32, height: f32, y_offset: f32) -> Shader {
+        let mut builder = RuntimeShaderBuilder::new(self.parchment_shader.clone());
+
+        builder
+            .set_uniform_float("yOffset", &[y_offset])
+            .expect("Builder set uniform failed");
+        builder
+            .set_uniform_float("iResolution", &[width, height])
+            .expect("Builder set uniform failed");
+
+        let m = Matrix::i();
+        builder.make_shader(m).expect("Failed to create shader")
     }
 
     pub fn create_noise_shader(&mut self, base_color: Color, mix: f32) -> Shader {
