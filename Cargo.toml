@@ -1,0 +1,10 @@
+[package]
+name = "BrassAndBlood"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+skia-safe = { version = "0.81.0", features = ["gl", "textlayout", "svg"] }
+sdl2 = { version = "0.37.0", features = ["bundled", "static-link"] }
+gl = "0.14.0"
+rand = "0.9.0"
