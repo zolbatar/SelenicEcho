@@ -3,11 +3,12 @@ use crate::skia::Skia;
 use skia_safe::paint::Style;
 use skia_safe::utils::text_utils::Align;
 use skia_safe::{Color, Font, Paint, Point};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::ops::Add;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+#[derive(Eq, PartialEq, Hash)]
 pub enum PrintStyle {
     NORMAL,
 }
@@ -29,7 +30,7 @@ pub struct Printer {
     onscreen: Vec<OnScreenWord>,
     padding: f32,
     next_time: Instant,
-    style_normal: Arc<PrinterStyle>,
+    style: HashMap<PrintStyle, Arc<PrinterStyle>>,
 }
 
 const TEXT_SPEED: u64 = 10;
@@ -40,18 +41,25 @@ impl Printer {
         paint_white.set_anti_alias(true);
         paint_white.set_style(Style::StrokeAndFill);
         paint_white.set_color(Color::WHITE);
-
         let padding = 80.0f32;
+
+        // Styles
+        let mut map = HashMap::new();
+        map.insert(
+            PrintStyle::NORMAL,
+            Arc::new(PrinterStyle {
+                paint: paint_white,
+                font: skia.font.clone(),
+            }),
+        );
+
         Printer {
             queue: VecDeque::new(),
             onscreen: Vec::new(),
             padding,
             cursor: Point::new(padding, padding),
             next_time: Instant::now(),
-            style_normal: Arc::new(PrinterStyle {
-                paint: paint_white,
-                font: skia.font.clone(),
-            }),
+            style: map,
         }
     }
 
@@ -71,10 +79,9 @@ impl Printer {
                 let c_with_space = c + " ";
 
                 // Get style
-                let style = match style {
-                    PrintStyle::NORMAL => self.style_normal.clone(),
-                };
+                let style = self.style.get(&style).unwrap().clone();
 
+                // Size text
                 let p = style.font.measure_text(&c_with_space, Some(&style.paint));
 
                 // Move cursor down?
