@@ -1,13 +1,13 @@
 use crate::app_state::AppState;
-use crate::skia::{FontFamily, Skia};
+use crate::printer::{PrintStyle, Printer};
+use crate::skia::Skia;
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
-use skia_safe::paint::Style;
-use skia_safe::{Color, Paint, Point};
 use std::process::exit;
 use std::time::{Duration, Instant};
 
 mod app_state;
+mod printer;
 mod skia;
 
 fn main() {
@@ -74,6 +74,8 @@ fn setup_sdl_skia() {
         skia.flush(app_state.gfx.dpi, 0.0);
     }
     let start = Instant::now();
+    let mut printer = Printer::new(&skia);
+    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."));
     loop {
         // Measure the time it took to render the previous frame
         let current_time = Instant::now();
@@ -81,22 +83,7 @@ fn setup_sdl_skia() {
 
         // Render!
         skia.set_matrix(&app_state.gfx);
-
-        //map.render(&mut skia, &app_state);
-
-        let mut paint_white = Paint::default();
-        paint_white.set_anti_alias(true);
-        paint_white.set_style(Style::StrokeAndFill);
-        paint_white.set_color(Color::WHITE);
-        skia.write_text(
-            30.0,
-            &paint_white,
-            "A test message",
-            Point::new(0.0, 100.0),
-            0.0,
-            &FontFamily::EbGaramond,
-        );
-
+        printer.print_render(&mut skia, &app_state.gfx, PrintStyle::NORMAL);
         // skia.test(app_state.gfx.width, app_state.gfx.height);
         unsafe {
             skia.flush(app_state.gfx.dpi, start.elapsed().as_secs_f32());

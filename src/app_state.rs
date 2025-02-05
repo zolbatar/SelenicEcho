@@ -7,8 +7,8 @@ pub struct GFXState {
     pub window: Window,
     pub width: i32,
     pub height: i32,
-    pub half_width: i32,
-    pub half_height: i32,
+    pub _half_width: i32,
+    pub _half_height: i32,
     pub dpi: f32,
 }
 
@@ -16,8 +16,8 @@ pub struct AppState {
     pub gfx: GFXState,
     pub fps: f64,
     pub phase: f32,
-    pub zoom: f32,
-    pub target: Point,
+    pub _zoom: f32,
+    pub _target: Point,
 }
 
 impl AppState {
@@ -33,14 +33,14 @@ impl AppState {
                 window,
                 width,
                 height,
-                half_width,
-                half_height,
+                _half_width: half_width,
+                _half_height: half_height,
                 dpi,
             },
             fps: 0.0,
             phase: 0.0,
-            zoom: MIN_ZOOM,
-            target: Point::new(0.0, 50.0),
+            _zoom: MIN_ZOOM,
+            _target: Point::new(0.0, 50.0),
         }
     }
 }
