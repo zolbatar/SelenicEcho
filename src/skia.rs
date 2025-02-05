@@ -11,7 +11,7 @@ use skia_safe::{
     RuntimeEffect, Shader, Surface, Vector,
 };
 
-static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Medium.ttf");
+static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Bold.ttf");
 static ECHO_FONT: &[u8] = include_bytes!("../assets/Marcellus-Regular.ttf");
 static MAIN_FONT: &[u8] = include_bytes!("../assets/NotoSans-VariableFont_wdth,wght.ttf");
 const NOISE_SKSL: &str = include_str!("../assets/noise.sksl");
@@ -95,7 +95,7 @@ impl Skia {
             _drop_shadow_white: drop_shadow_white,
             noise_shader,
             plasma_shader,
-            colour_background: Color::from_argb(255, 53, 53, 53),
+            colour_background: Color::from_argb(180, 53, 53, 53),
         }
     }
 
@@ -131,16 +131,14 @@ impl Skia {
         // Clear
         let w = self.surface.width();
         let h = self.surface.height();
-        self.get_canvas().clear(skia_safe::Color::TRANSPARENT);
+        self.get_canvas().clear(Color::TRANSPARENT);
         let mut paint_background = Paint::default();
-        paint_background.set_color(self.colour_background);
         paint_background.set_style(PaintStyle::Fill);
-        //paint_background.set_shader(self.create_parchment_shader(w as f32, h as f32, 0f32));
         paint_background.set_shader(self.create_plasma_shader(w as f32, h as f32, dpi, millis));
         self.get_canvas().draw_rect(Rect::from_xywh(0.0, 0.0, w as f32, h as f32), &paint_background);
 
         // Now overlay with darker
-        paint_background.set_argb(180, 0, 0, 0);
+        paint_background.set_color(self.colour_background);
         paint_background.set_shader(None);
         self.get_canvas().draw_rect(Rect::from_xywh(0.0, 0.0, w as f32, h as f32), &paint_background);
 
@@ -202,7 +200,7 @@ impl Skia {
             data.extend_from_slice(&mix.to_ne_bytes());
 
             // Colour
-            let d = Color4f::from(base_color).as_array().iter().map(|&f| f.to_ne_bytes()).flatten().collect::<Vec<_>>();
+            let d = Color4f::from(base_color).as_array().iter().flat_map(|&f| f.to_ne_bytes()).collect::<Vec<_>>();
             data.extend_from_slice(&d);
 
             Data::new_copy(&data)

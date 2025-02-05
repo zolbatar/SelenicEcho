@@ -1,17 +1,17 @@
 use crate::dialogue;
-use crate::dialogue::logic::{DialogueNode, DialogueOption};
+use crate::dialogue::logic::{DialogueNode, DialogueNodeID, DialogueOption, DialoguePersonID};
 use std::collections::HashMap;
 
-pub fn dialogue1(mut hash_map: HashMap<String, DialogueNode>) {
+pub fn dialogue1(hash_map: &mut HashMap<DialogueNodeID, DialogueNode>) {
     let d = dialogue!(
-        "central_intro",
-        "Central",
+        DialogueNodeID::Dialogue1,
+        DialoguePersonID::Central,
         "System Status: Active. All crew members accounted for.",
         [
-            ("No, they're gone. The base is empty.", "central_deny_reality"),
-            ("You need to let me into the lab.", "central_access_check"),
-            ("You're malfunctioning. Something is wrong.", "central_malfunction_check")
+            ("No, they're gone. The base is empty.", DialogueNodeID::Dialogue1),
+            ("You need to let me into the lab.", DialogueNodeID::Dialogue1),
+            ("You're malfunctioning. Something is wrong.", DialogueNodeID::Dialogue1)
         ]
     );
-    hash_map.insert(d.id.clone(), d);
+    hash_map.insert(d.id, d);
 }

@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
-use crate::dialogue::logic::parse_dialogue;
-use crate::printer::{PrintStyle, Printer};
+use crate::dialogue::logic::{parse_dialogue, DialogueNodeID};
+use crate::narration::narrations::get_narrations;
+use crate::printer::Printer;
 use crate::skia::Skia;
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
@@ -9,6 +10,7 @@ use std::time::{Duration, Instant};
 
 mod app_state;
 mod dialogue;
+mod narration;
 mod printer;
 mod skia;
 
@@ -61,7 +63,9 @@ fn main() {
     let mut last_fps_check = Instant::now();
     let fps_check_interval = Duration::from_secs(1); // Check FPS every second
 
-    parse_dialogue();
+    // Dialogue
+    let dialogues = parse_dialogue();
+    let narrations = get_narrations();
 
     // App state, skia etc.
     let mut app_state = AppState::new(window, dpi);
@@ -71,9 +75,7 @@ fn main() {
     }
     let start = Instant::now();
     let mut printer = Printer::new(&skia);
-    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::Normal);
-    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::Echo);
-    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::AI);
+    printer.print_dialogue(DialogueNodeID::Dialogue1, dialogues);
     loop {
         // Measure the time it took to render the previous frame
         let current_time = Instant::now();

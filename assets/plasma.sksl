@@ -57,7 +57,7 @@ vec3 getPlasmaColor(float v) {
         0.5 + 0.5 * cos(6.28318 * v + 2.094 + u_time * 0.4),
         0.5 + 0.5 * cos(6.28318 * v + 4.188 + u_time * 0.5)
     );
-    return mix(color, grey, 0.2);
+    return mix(color, grey, 0.4);
 }
 
 half4 main(vec2 fragCoord) {

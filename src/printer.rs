@@ -1,4 +1,5 @@
 use crate::app_state::GFXState;
+use crate::dialogue::logic::{DialogueNode, DialogueNodeID, DialoguePersonID};
 use crate::skia::Skia;
 use skia_safe::paint::Style;
 use skia_safe::utils::text_utils::Align;
@@ -40,7 +41,7 @@ pub struct Printer {
     style: HashMap<PrintStyle, Arc<PrinterStyle>>,
 }
 
-const TEXT_SPEED: u64 = 10;
+const TEXT_SPEED: u64 = 25;
 
 impl Printer {
     pub fn new(skia: &Skia) -> Printer {
@@ -59,7 +60,7 @@ impl Printer {
                 font: skia.font_main.clone(),
             }),
         );
-        paint_white.set_color(Color::YELLOW);
+        paint_white.set_color(Color::MAGENTA);
         map.insert(
             PrintStyle::Echo,
             Arc::new(PrinterStyle {
@@ -67,7 +68,7 @@ impl Printer {
                 font: skia.font_echo.clone(),
             }),
         );
-        paint_white.set_color(Color::MAGENTA);
+        paint_white.set_color(Color::YELLOW);
         map.insert(
             PrintStyle::AI,
             Arc::new(PrinterStyle {
@@ -86,7 +87,19 @@ impl Printer {
         }
     }
 
-    pub fn print(&mut self, text: String, style: PrintStyle) {
+    pub fn print_dialogue(&mut self, dialogue: DialogueNodeID, dialogues: HashMap<DialogueNodeID, DialogueNode>) {
+        let dialogue = dialogues.get(&dialogue).unwrap();
+        let style = match dialogue.speaker {
+            DialoguePersonID::Player => PrintStyle::Normal,
+            DialoguePersonID::Central => PrintStyle::AI,
+            DialoguePersonID::Fixer => PrintStyle::AI,
+            DialoguePersonID::Watcher => PrintStyle::AI,
+            DialoguePersonID::Echo => PrintStyle::Echo,
+        };
+        self.print(&dialogue.text, style)
+    }
+
+    pub fn print(&mut self, text: &str, style: PrintStyle) {
         for c in text.split_whitespace() {
             self.queue.push_back(QueueItem {
                 text: c.trim().to_string(),
@@ -106,7 +119,6 @@ impl Printer {
             // Move new one?
             let c = self.queue.pop_front();
             if let Some(c) = c {
-
                 // Get style
                 let style = self.style.get(&c.style).unwrap().clone();
 
