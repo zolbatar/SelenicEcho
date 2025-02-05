@@ -1,0 +1,48 @@
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_dpi_scale;
+
+// Generate a simple grid pattern
+float grid(vec2 uv, float scale) {
+    vec2 gridUV = fract(uv * scale);
+    float lineWidth = 0.05;
+    float gridPattern = smoothstep(lineWidth, 0.0, min(gridUV.x, gridUV.y));
+    return gridPattern;
+}
+
+// Simulate scanline movement and distortion
+float scan_wave(vec2 uv) {
+    return sin(uv.y * 10.0 + u_time * 2.0) * 0.1;
+}
+
+// Add glitch effect
+float glitch(vec2 uv) {
+    float noise = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+    return step(0.99, noise) * 0.1; // Occasionally flashes white
+}
+
+// Main function
+half4 main(vec2 fragCoord) {
+    vec2 uv = fragCoord / u_resolution * u_dpi_scale;
+    uv = uv * 2.0 - 1.0; // Normalize to [-1,1]
+    
+    // Simulate depth distortion in the grid
+    float depthEffect = sin(uv.x * 3.0 + u_time) * cos(uv.y * 3.0 + u_time * 0.5);
+    
+    // Apply the grid effect
+    float gridEffect = grid(uv + depthEffect * 0.1, 8.0);
+    
+    // Add a sweeping scanline
+    float scanEffect = scan_wave(uv);
+    
+    // Add glitch flickering for a sci-fi feel
+    float glitchEffect = glitch(uv + u_time);
+    
+    // Combine all effects
+    float finalEffect = gridEffect * (0.8 + scanEffect) + glitchEffect;
+    
+    // Set wireframe color (red with slight variations)
+    vec3 color = vec3(1.0, 0.2, 0.2) * finalEffect; // Red glowing grid
+    
+    return half4(color, 1.0);
+}

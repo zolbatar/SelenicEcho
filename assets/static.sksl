@@ -1,0 +1,46 @@
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform float u_dpi_scale;
+
+// Smooth noise function using interpolation
+float noise(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// Fractal Brownian Motion (adds complexity to the noise)
+float fbm(vec2 p) {
+    float v = 0.0;
+    float a = 0.5;
+    
+    for (int i = 0; i < 6; i++) { // More layers for organic movement
+        v += a * noise(p);
+        p *= 2.1;
+        a *= 0.5;
+    }
+    
+    return v;
+}
+
+// Create shifting plasma-like energy effect
+float etherEffect(vec2 uv) {
+    float t = u_time * 0.1; // Slow evolution of the effect
+    vec2 movement = vec2(sin(t), cos(t)) * 0.3;
+    float turbulence = fbm(uv * 3.0 + movement);
+    
+    // Organic bloom-like effect
+    return sin(t + turbulence * 4.0) * 0.5 + 0.5;
+}
+
+// Subtle, otherworldly color gradient
+vec3 getEtherColor(float v) {
+    return mix(vec3(0.1, 0.2, 0.3), vec3(0.7, 0.8, 1.0), v); // Deep blue to soft white
+}
+
+half4 main(vec2 fragCoord) {
+    vec2 uv = (fragCoord / u_resolution * u_dpi_scale) * 2.0 - 1.0; // Normalize to [-1,1]
+
+    float etherValue = etherEffect(uv * 1.5); // Adjust scale
+    vec3 color = getEtherColor(etherValue);
+
+    return half4(color, 1.0);
+}

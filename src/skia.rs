@@ -18,11 +18,13 @@ use skia_safe::{
 static EBGARAMOND_TTF: &[u8] = include_bytes!("../assets/EBGaramond-VariableFont_wght.ttf");
 const NOISE_SKSL: &str = include_str!("../assets/noise.sksl");
 const PARCHMENT_SKSL: &str = include_str!("../assets/parchment.sksl");
+const PLASMA_SKSL: &str = include_str!("../assets/plasma.sksl");
 pub const NOISE_MIX: f32 = 0.075;
 pub const ELLIPSIS: &str = "\u{2026}";
 
 pub enum FontFamily {
     EbGaramond,
+    EbGaramondItalic,
     EbGaramondBold,
 }
 
@@ -33,6 +35,7 @@ pub struct Skia {
     pub drop_shadow_white: Option<ImageFilter>,
     noise_shader: RuntimeEffect,
     parchment_shader: RuntimeEffect,
+    plasma_shader: RuntimeEffect,
     pub surface: Surface,
     pub colour_background: Color,
 }
@@ -56,12 +59,12 @@ impl Skia {
         wrap_backend_render_target(
             context,
             &backend_render_target,
-            gpu::SurfaceOrigin::TopLeft,
+            gpu::SurfaceOrigin::BottomLeft,
             skia_safe::ColorType::RGBA8888,
             None,
             None,
         )
-        .expect("Could not create Skia surface")
+            .expect("Could not create Skia surface")
     }
 
     pub fn new(app_state: &AppState) -> Self {
@@ -90,8 +93,9 @@ impl Skia {
         // Shaders
         let noise_shader = RuntimeEffect::make_for_shader(NOISE_SKSL, None)
             .expect("Failed to make runtime effect");
-
         let parchment_shader = RuntimeEffect::make_for_shader(PARCHMENT_SKSL, None)
+            .expect("Failed to make runtime effect");
+        let plasma_shader = RuntimeEffect::make_for_shader(PLASMA_SKSL, None)
             .expect("Failed to make runtime effect");
 
         // Filters
@@ -127,6 +131,7 @@ impl Skia {
             drop_shadow_white,
             noise_shader,
             parchment_shader,
+            plasma_shader,
             colour_background: Color::from_argb(255, 53, 53, 53),
         }
     }
@@ -156,7 +161,7 @@ impl Skia {
         self.surface.canvas()
     }
 
-    pub unsafe fn flush(&mut self) {
+    pub unsafe fn flush(&mut self, dpi: f32, millis: f32) {
         self.surface.image_snapshot();
         self.context.flush_and_submit();
 
@@ -165,9 +170,26 @@ impl Skia {
         let h = self.surface.height();
         self.get_canvas().clear(skia_safe::Color::TRANSPARENT);
         let mut paint_background = Paint::default();
+        paint_background.set_argb(255, 0, 0, 0);
         paint_background.set_style(PaintStyle::Fill);
-        paint_background.set_shader(self.create_parchment_shader(w as f32, h as f32, 0f32));
-//        paint_background.set_shader(self.create_noise_shader(self.colour_background, NOISE_MIX));
+        //paint_background.set_shader(self.create_parchment_shader(w as f32, h as f32, 0f32));
+        paint_background.set_shader(self.create_plasma_shader(w as f32, h as f32, dpi, millis));
+        self.get_canvas().draw_rect(
+            Rect::from_xywh(0.0, 0.0, w as f32, h as f32),
+            &paint_background,
+        );
+
+        // Now overlay with darker
+        paint_background.set_argb(128,0,0,0);
+        paint_background.set_shader(None);
+        self.get_canvas().draw_rect(
+            Rect::from_xywh(0.0, 0.0, w as f32, h as f32),
+            &paint_background,
+        );
+
+        // And add noise
+        paint_background.set_argb(200,255,255,255);
+        paint_background.set_shader(self.create_noise_shader(Color::BLACK, 0.1));
         self.get_canvas().draw_rect(
             Rect::from_xywh(0.0, 0.0, w as f32, h as f32),
             &paint_background,
@@ -221,16 +243,21 @@ impl Skia {
         let mut builder = ParagraphBuilder::new(&paragraph_style, &self.font_collection);
 
         let weight = match family {
-            FontFamily::EbGaramond => Weight::NORMAL,
             FontFamily::EbGaramondBold => Weight::MEDIUM,
+            _ => Weight::NORMAL,
         };
-        let font_style = FontStyle::new(weight, Width::NORMAL, Slant::Upright);
+        let slant = match family {
+            FontFamily::EbGaramondItalic => Slant::Italic,
+            _ => Slant::Upright,
+        };
+        let font_style = FontStyle::new(weight, Width::NORMAL, slant);
 
         // Text style
         let mut text_style = TextStyle::new();
         text_style.set_font_size(font_size);
         match family {
             FontFamily::EbGaramond => text_style.set_font_families(&["EB Garamond"]),
+            FontFamily::EbGaramondItalic => text_style.set_font_families(&["EB Garamond"]),
             FontFamily::EbGaramondBold => text_style.set_font_families(&["EB Garamond"]),
         };
         text_style.set_font_style(font_style);
@@ -329,13 +356,18 @@ impl Skia {
 
     pub fn create_parchment_shader(&mut self, width: f32, height: f32, y_offset: f32) -> Shader {
         let mut builder = RuntimeShaderBuilder::new(self.parchment_shader.clone());
+        builder.set_uniform_float("yOffset", &[y_offset]).unwrap();
+        builder.set_uniform_float("iResolution", &[width, height]).unwrap();
 
-        builder
-            .set_uniform_float("yOffset", &[y_offset])
-            .expect("Builder set uniform failed");
-        builder
-            .set_uniform_float("iResolution", &[width, height])
-            .expect("Builder set uniform failed");
+        let m = Matrix::i();
+        builder.make_shader(m).expect("Failed to create shader")
+    }
+
+    pub fn create_plasma_shader(&mut self, width: f32, height: f32, dpi: f32, time: f32) -> Shader {
+        let mut builder = RuntimeShaderBuilder::new(self.plasma_shader.clone());
+        builder.set_uniform_float("u_time", &[time]).unwrap();
+        builder.set_uniform_float("u_resolution", &[width, height]).unwrap();
+        builder.set_uniform_float("u_dpi_scale", &[dpi]).unwrap();
 
         let m = Matrix::i();
         builder.make_shader(m).expect("Failed to create shader")

@@ -1,7 +1,9 @@
 use crate::app_state::AppState;
-use crate::skia::Skia;
+use crate::skia::{FontFamily, Skia};
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
+use skia_safe::paint::Style;
+use skia_safe::{Color, Paint, Point};
 use std::process::exit;
 use std::time::{Duration, Instant};
 
@@ -69,7 +71,7 @@ fn setup_sdl_skia() {
     let mut app_state = AppState::new(window, dpi);
     let mut skia = Skia::new(&app_state);
     unsafe {
-        skia.flush();
+        skia.flush(app_state.gfx.dpi, 0.0);
     }
     let start = Instant::now();
     loop {
@@ -79,10 +81,25 @@ fn setup_sdl_skia() {
 
         // Render!
         skia.set_matrix(&app_state.gfx);
+
         //map.render(&mut skia, &app_state);
+
+        let mut paint_white = Paint::default();
+        paint_white.set_anti_alias(true);
+        paint_white.set_style(Style::StrokeAndFill);
+        paint_white.set_color(Color::WHITE);
+        skia.write_text(
+            30.0,
+            &paint_white,
+            "A test message",
+            Point::new(0.0, 100.0),
+            0.0,
+            &FontFamily::EbGaramond,
+        );
+
         // skia.test(app_state.gfx.width, app_state.gfx.height);
         unsafe {
-            skia.flush();
+            skia.flush(app_state.gfx.dpi, start.elapsed().as_secs_f32());
         }
 
         // Increment the frame count
