@@ -8,9 +8,11 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-#[derive(Eq, PartialEq, Hash)]
+#[derive(Eq, PartialEq, Hash, Clone, Copy)]
 pub enum PrintStyle {
-    NORMAL,
+    Normal,
+    AI,
+    Echo,
 }
 
 struct PrinterStyle {
@@ -24,9 +26,14 @@ struct OnScreenWord {
     style: Arc<PrinterStyle>,
 }
 
+struct QueueItem {
+    text: String,
+    style: PrintStyle,
+}
+
 pub struct Printer {
     cursor: Point,
-    queue: VecDeque<String>,
+    queue: VecDeque<QueueItem>,
     onscreen: Vec<OnScreenWord>,
     padding: f32,
     next_time: Instant,
@@ -46,10 +53,26 @@ impl Printer {
         // Styles
         let mut map = HashMap::new();
         map.insert(
-            PrintStyle::NORMAL,
+            PrintStyle::Normal,
+            Arc::new(PrinterStyle {
+                paint: paint_white.clone(),
+                font: skia.font_main.clone(),
+            }),
+        );
+        paint_white.set_color(Color::YELLOW);
+        map.insert(
+            PrintStyle::Echo,
+            Arc::new(PrinterStyle {
+                paint: paint_white.clone(),
+                font: skia.font_echo.clone(),
+            }),
+        );
+        paint_white.set_color(Color::MAGENTA);
+        map.insert(
+            PrintStyle::AI,
             Arc::new(PrinterStyle {
                 paint: paint_white,
-                font: skia.font.clone(),
+                font: skia.font_ai.clone(),
             }),
         );
 
@@ -63,46 +86,62 @@ impl Printer {
         }
     }
 
-    pub fn print(&mut self, text: String) {
+    pub fn print(&mut self, text: String, style: PrintStyle) {
         for c in text.split_whitespace() {
-            self.queue.push_back(c.trim().to_string());
+            self.queue.push_back(QueueItem {
+                text: c.trim().to_string(),
+                style,
+            });
         }
+        self.queue.push_back(QueueItem {
+            text: "\n".to_string(),
+            style,
+        });
     }
 
-    pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, style: PrintStyle) {
+    pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState) {
         // Too early?
         let diff = Instant::now().duration_since(self.next_time).as_millis();
         if diff > 0 {
             // Move new one?
             let c = self.queue.pop_front();
             if let Some(c) = c {
-                let c_with_space = c + " ";
 
                 // Get style
-                let style = self.style.get(&style).unwrap().clone();
+                let style = self.style.get(&c.style).unwrap().clone();
 
-                // Size text
-                let p = style.font.measure_text(&c_with_space, Some(&style.paint));
-
-                // Move cursor down?
-                if (self.cursor.x + p.0) > (gfx.width as f32 - self.padding) {
+                if c.text == "\n" {
                     self.cursor.x = self.padding;
-                    self.cursor.y += style.font.size() * 1.25;
+                    self.cursor.y += style.font.size() * 2.5;
+
+                    // Delay for next word
+                    self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
+                } else {
+                    let c_with_space = c.text + " ";
+
+                    // Size text
+                    let p = style.font.measure_text(&c_with_space, Some(&style.paint));
+
+                    // Move cursor down?
+                    if (self.cursor.x + p.0) > (gfx.width as f32 - self.padding) {
+                        self.cursor.x = self.padding;
+                        self.cursor.y += style.font.size() * 1.25;
+                    }
+
+                    let length = c_with_space.len();
+                    let osw = OnScreenWord {
+                        pos: self.cursor,
+                        c: c_with_space,
+                        style,
+                    };
+                    self.onscreen.push(osw);
+
+                    // Move cursor along?
+                    self.cursor.x += p.0;
+
+                    // Delay for next word
+                    self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * length as u64));
                 }
-
-                let length = c_with_space.len();
-                let osw = OnScreenWord {
-                    pos: self.cursor,
-                    c: c_with_space,
-                    style,
-                };
-                self.onscreen.push(osw);
-
-                // Move cursor along?
-                self.cursor.x += p.0;
-
-                // Delay for next word
-                self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * length as u64));
             }
         }
 

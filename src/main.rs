@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::dialogue::logic::parse_dialogue;
 use crate::printer::{PrintStyle, Printer};
 use crate::skia::Skia;
 use sdl2::event::Event;
@@ -7,14 +8,11 @@ use std::process::exit;
 use std::time::{Duration, Instant};
 
 mod app_state;
+mod dialogue;
 mod printer;
 mod skia;
 
 fn main() {
-    setup_sdl_skia()
-}
-
-fn setup_sdl_skia() {
     // Initialize SDL2
     let sdl = sdl2::init().unwrap();
     let video_subsystem = sdl.video().unwrap();
@@ -25,12 +23,7 @@ fn setup_sdl_skia() {
     gl_attr.set_context_version(3, 3); // OpenGL 3.3
 
     // Create an SDL2 window
-    let window = video_subsystem
-        .window("Simulation", 1500, 900)
-        .opengl()
-        .allow_highdpi()
-        .build()
-        .unwrap();
+    let window = video_subsystem.window("Simulation", 1400, 900).opengl().allow_highdpi().build().unwrap();
 
     // Create an OpenGL context
     let _gl_context = window.gl_create_context().unwrap();
@@ -68,6 +61,9 @@ fn setup_sdl_skia() {
     let mut last_fps_check = Instant::now();
     let fps_check_interval = Duration::from_secs(1); // Check FPS every second
 
+    parse_dialogue();
+
+    // App state, skia etc.
     let mut app_state = AppState::new(window, dpi);
     let mut skia = Skia::new(&app_state);
     unsafe {
@@ -75,7 +71,9 @@ fn setup_sdl_skia() {
     }
     let start = Instant::now();
     let mut printer = Printer::new(&skia);
-    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."));
+    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::Normal);
+    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::Echo);
+    printer.print(String::from("No one shall be subjected to arbitrary arrest, detention or exile. Everyone is entitled in full equality to a fair and public hearing by an independent and impartial tribunal, in the determination of his rights and obligations and of any criminal charge against him. No one shall be subjected to arbitrary interference with his privacy, family, home or correspondence, nor to attacks upon his honour and reputation. Everyone has the right to the protection of the law against such interference or attacks."), PrintStyle::AI);
     loop {
         // Measure the time it took to render the previous frame
         let current_time = Instant::now();
@@ -83,7 +81,7 @@ fn setup_sdl_skia() {
 
         // Render!
         skia.set_matrix(&app_state.gfx);
-        printer.print_render(&mut skia, &app_state.gfx, PrintStyle::NORMAL);
+        printer.print_render(&mut skia, &app_state.gfx);
         // skia.test(app_state.gfx.width, app_state.gfx.height);
         unsafe {
             skia.flush(app_state.gfx.dpi, start.elapsed().as_secs_f32());
@@ -103,7 +101,9 @@ fn setup_sdl_skia() {
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } => exit(0),
+                Event::Quit {
+                    ..
+                } => exit(0),
                 _ => {}
             }
         }
