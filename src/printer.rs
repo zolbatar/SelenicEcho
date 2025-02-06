@@ -21,12 +21,14 @@ pub enum PrintStyle {
 struct PrinterStyle {
     paint: Paint,
     font: Font,
+    font_bold: Font,
 }
 
 struct OnScreenWord {
     pos: Point,
     c: String,
     style: Arc<PrinterStyle>,
+    is_bold: bool,
 }
 
 struct QueueItem {
@@ -41,6 +43,8 @@ pub struct Printer {
     padding: f32,
     next_time: Instant,
     style: HashMap<PrintStyle, Arc<PrinterStyle>>,
+    bold_mode: bool,
+    ai_mode: bool,
 }
 
 const TEXT_SPEED: u64 = 25;
@@ -60,6 +64,7 @@ impl Printer {
             Arc::new(PrinterStyle {
                 paint: paint_white.clone(),
                 font: skia.font_main.clone(),
+                font_bold: skia.font_main_bold.clone(),
             }),
         );
         paint_white.set_color(Color::MAGENTA);
@@ -68,6 +73,7 @@ impl Printer {
             Arc::new(PrinterStyle {
                 paint: paint_white.clone(),
                 font: skia.font_echo.clone(),
+                font_bold: skia.font_echo.clone(),
             }),
         );
         paint_white.set_color(Color::YELLOW);
@@ -76,6 +82,7 @@ impl Printer {
             Arc::new(PrinterStyle {
                 paint: paint_white,
                 font: skia.font_ai.clone(),
+                font_bold: skia.font_ai.clone(),
             }),
         );
 
@@ -86,6 +93,8 @@ impl Printer {
             cursor: Point::new(padding, padding),
             next_time: Instant::now(),
             style: map,
+            bold_mode: false,
+            ai_mode: false,
         }
     }
 
@@ -111,13 +120,32 @@ impl Printer {
         let mut result = Vec::new();
         let mut current = String::new();
 
+        let mut command = false;
         for c in text.chars() {
-            if c == '\n' {
+            if command {
+                command = false;
+                if c == 'A' {
+                    result.push("<ai>".to_string());
+                } else if c == 'a' {
+                    result.push("</ai>".to_string());
+                }
+                if c == 'B' {
+                    result.push("<bold>".to_string());
+                } else if c == 'b' {
+                    result.push("</bold>".to_string());
+                }
+            } else if c == '\n' {
                 if !current.is_empty() {
                     result.push(current.clone());
                     current.clear();
                 }
                 result.push("\n".to_string()); // Add newline as its own token
+            } else if c == '#' {
+                command = true;
+                if !current.is_empty() {
+                    result.push(current.clone());
+                    current.clear();
+                }
             } else if c.is_whitespace() {
                 if !current.is_empty() {
                     result.push(current.clone());
@@ -143,10 +171,6 @@ impl Printer {
                 style,
             });
         }
-/*        self.queue.push_back(QueueItem {
-            text: "\n".to_string(),
-            style,
-        });*/
     }
 
     pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, phase: f32) {
@@ -165,6 +189,10 @@ impl Printer {
 
                     // Delay for next word
                     self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
+                } else if c.text == "<bold>" {
+                    self.bold_mode = true;
+                } else if c.text == "</bold>" {
+                    self.bold_mode = false;
                 } else {
                     let c_with_space = c.text + " ";
 
@@ -182,6 +210,7 @@ impl Printer {
                         pos: self.cursor,
                         c: c_with_space,
                         style,
+                        is_bold: self.bold_mode,
                     };
                     self.onscreen.push(osw);
 
@@ -197,7 +226,17 @@ impl Printer {
         // Draw all existing
         let canvas = skia.surface.canvas();
         self.onscreen.iter().for_each(|osw| {
-            canvas.draw_text_align(osw.c.as_str(), osw.pos, &osw.style.font, &osw.style.paint, Align::Left);
+            canvas.draw_text_align(
+                osw.c.as_str(),
+                osw.pos,
+                if !osw.is_bold {
+                    &osw.style.font
+                } else {
+                    &osw.style.font_bold
+                },
+                &osw.style.paint,
+                Align::Left,
+            );
         });
 
         // Cursor

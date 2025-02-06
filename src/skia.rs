@@ -6,14 +6,12 @@ use skia_safe::gpu::surfaces::wrap_backend_render_target;
 use skia_safe::gpu::{ContextOptions, DirectContext};
 use skia_safe::image_filters::drop_shadow_only;
 use skia_safe::runtime_effect::RuntimeShaderBuilder;
-use skia_safe::{
-    gpu, Canvas, Color, Color4f, Data, Font, FontMgr, ImageFilter, Matrix, Paint, PaintStyle, Point, Rect,
-    RuntimeEffect, Shader, Surface, Vector,
-};
+use skia_safe::{gpu, Canvas, Color, Color4f, Data, Font, FontMgr, ImageFilter, Matrix, Paint, PaintStyle, Point, Rect, RuntimeEffect, Shader, Surface, Vector};
 
-static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Bold.ttf");
+static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Medium.ttf");
 static ECHO_FONT: &[u8] = include_bytes!("../assets/Marcellus-Regular.ttf");
-static MAIN_FONT: &[u8] = include_bytes!("../assets/NotoSans-VariableFont_wdth,wght.ttf");
+static MAIN_FONT: &[u8] = include_bytes!("../assets/NotoSans-Regular.ttf");
+static MAIN_FONT_BOLD: &[u8] = include_bytes!("../assets/NotoSans-Bold.ttf");
 const NOISE_SKSL: &str = include_str!("../assets/noise.sksl");
 const PLASMA_SKSL: &str = include_str!("../assets/plasma.sksl");
 pub const _NOISE_MIX: f32 = 0.075;
@@ -27,6 +25,7 @@ pub struct Skia {
     pub surface: Surface,
     pub colour_background: Color,
     pub font_main: Font,
+    pub font_main_bold: Font,
     pub font_ai: Font,
     pub font_echo: Font,
 }
@@ -89,6 +88,7 @@ impl Skia {
             context,
             surface,
             font_main: Font::from_typeface(font_mgr.new_from_data(MAIN_FONT, None).unwrap(), FONT_SIZE),
+            font_main_bold: Font::from_typeface(font_mgr.new_from_data(MAIN_FONT_BOLD, None).unwrap(), FONT_SIZE),
             font_ai: Font::from_typeface(font_mgr.new_from_data(AI_FONT, None).unwrap(), FONT_SIZE),
             font_echo: Font::from_typeface(font_mgr.new_from_data(ECHO_FONT, None).unwrap(), FONT_SIZE),
             _drop_shadow: drop_shadow,

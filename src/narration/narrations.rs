@@ -1,4 +1,4 @@
-use crate::{location, narration};
+use crate::narration;
 use std::collections::HashMap;
 
 const AWAKE: &str = include_str!("awake.txt");

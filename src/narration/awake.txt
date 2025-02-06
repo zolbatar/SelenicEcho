@@ -1,11 +1,11 @@
-Beep.
+#ABeep.#a
 A sharp, rhythmic beeping cuts through the void. At first, it’s distant—muffled, like sound traveling through water. Then it grows sharper, drilling into your skull, demanding attention.
-Beep. Beep. Beep.
+#ABeep. Beep. Beep.#a
 You wake with a shallow gasp, cold air rattling through your lungs. Your breath fogs the inside of your helmet, momentarily blurring the heads-up display flickering in your visor.
-Low Oxygen Warning.
+#ALow Oxygen Warning.#a
 A dull orange alert pulses in your periphery, flashing in time with the beeping. The suit feels heavy, stiff. Lunar dust clings to your gloves, gritty and fine, shifting as you push yourself upright.
 The visor’s curvature distorts your view, but the landscape beyond is unmistakable.
-The Moon.
+#BThe Moon.#b
 It stretches out before you in endless greys, rolling craters and jagged ridges carved by ancient impacts. The sky above is a depthless black, an ocean of stars hanging in perfect stillness. The Earth should be visible somewhere—a blue lifeline in the void—but your visor HUD is still recalibrating, flickering with static.
 Why are you out here?
 You try to piece it together, but your mind feels slow, unfocussed. The last thing you remember—
