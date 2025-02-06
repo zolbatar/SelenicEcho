@@ -41,13 +41,14 @@ pub struct Printer {
     queue: VecDeque<QueueItem>,
     onscreen: Vec<OnScreenWord>,
     padding: f32,
+    v_adjust: f32,
     next_time: Instant,
     style: HashMap<PrintStyle, Arc<PrinterStyle>>,
     bold_mode: bool,
     ai_mode: bool,
 }
 
-const TEXT_SPEED: u64 = 25;
+const TEXT_SPEED: u64 = 5;//25;
 
 impl Printer {
     pub fn new(skia: &Skia) -> Printer {
@@ -76,7 +77,7 @@ impl Printer {
                 font_bold: skia.font_echo.clone(),
             }),
         );
-        paint_white.set_color(Color::YELLOW);
+        paint_white.set_color(Color::MAGENTA);
         map.insert(
             PrintStyle::AI,
             Arc::new(PrinterStyle {
@@ -90,6 +91,7 @@ impl Printer {
             queue: VecDeque::new(),
             onscreen: Vec::new(),
             padding,
+            v_adjust: 120.0,
             cursor: Point::new(padding, padding),
             next_time: Instant::now(),
             style: map,
@@ -174,6 +176,32 @@ impl Printer {
         }
     }
 
+    fn check_for_vertical_scroll(&mut self, gfx: &GFXState) {
+        if self.cursor.y > (gfx.height as f32 - self.padding) {
+            self.onscreen.iter_mut().for_each(|screen| {
+                screen.pos.y -= self.v_adjust;
+            });
+            
+            // And remove any that are offscreen now.
+            self.onscreen.retain(|screen| {
+                screen.pos.y >= self.padding
+            });
+
+            // Adjust cursor
+            self.cursor.y -= self.v_adjust;
+        }
+    }
+
+    fn single_linefeed(&mut self, style: Arc<PrinterStyle>, gfx: &GFXState) {
+        self.cursor.y += style.font.size() * 1.25;
+        self.check_for_vertical_scroll(gfx);
+    }
+
+    fn double_linefeed(&mut self, style: Arc<PrinterStyle>, gfx: &GFXState) {
+        self.cursor.y += style.font.size() * 2.5;
+        self.check_for_vertical_scroll(gfx);
+    }
+
     pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, phase: f32) {
         let ai_style = self.style.get(&PrintStyle::AI).unwrap().clone();
 
@@ -188,13 +216,11 @@ impl Printer {
 
                 if c.text == "\n" {
                     self.cursor.x = self.padding;
-                    self.cursor.y += style.font.size() * 2.5;
-
-                    // Delay for next word
+                    self.double_linefeed(style, gfx);
                     self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
                 } else if c.text == "<NL>" {
                     self.cursor.x = self.padding;
-                    self.cursor.y += style.font.size() * 1.25;
+                    self.single_linefeed(style, gfx);
                     self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
                 } else if c.text == "<bold>" {
                     self.bold_mode = true;
@@ -213,7 +239,7 @@ impl Printer {
                     // Move cursor down?
                     if (self.cursor.x + p.0) > (gfx.width as f32 - self.padding) {
                         self.cursor.x = self.padding;
-                        self.cursor.y += style.font.size() * 1.25;
+                        self.single_linefeed(style.clone(), gfx);
                     }
 
                     let length = c_with_space.len();
@@ -257,7 +283,7 @@ impl Printer {
         // Cursor
         let mut paint = Paint::default();
         paint.set_anti_alias(true);
-        paint.set_color(Color::GREEN);
+        paint.set_color(Color::YELLOW);
         paint.set_style(Style::Fill);
         if phase >= 1.0 {
             let (_, fm) = skia.font_main.metrics();

@@ -8,7 +8,7 @@ use skia_safe::image_filters::drop_shadow_only;
 use skia_safe::runtime_effect::RuntimeShaderBuilder;
 use skia_safe::{gpu, Canvas, Color, Color4f, Data, Font, FontMgr, ImageFilter, Matrix, Paint, PaintStyle, Point, Rect, RuntimeEffect, Shader, Surface, Vector};
 
-static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Medium.ttf");
+static AI_FONT: &[u8] = include_bytes!("../assets/TX-02-Regular.ttf");
 static AI_FONT_BOLD: &[u8] = include_bytes!("../assets/TX-02-Bold.ttf");
 static ECHO_FONT: &[u8] = include_bytes!("../assets/Marcellus-Regular.ttf");
 static MAIN_FONT: &[u8] = include_bytes!("../assets/NotoSans-Regular.ttf");
