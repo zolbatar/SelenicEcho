@@ -5,7 +5,7 @@ use crate::location::locations::LocationID;
 use crate::skia::Skia;
 use skia_safe::paint::Style;
 use skia_safe::utils::text_utils::Align;
-use skia_safe::{Color, Font, Paint, Point};
+use skia_safe::{Color, Font, Paint, Point, Rect};
 use std::collections::{HashMap, VecDeque};
 use std::ops::Add;
 use std::sync::Arc;
@@ -133,7 +133,7 @@ impl Printer {
 
         result
     }
-    
+
     pub fn print(&mut self, text: &str, style: PrintStyle) {
         let words = self.split_keep_newlines(text);
         for c in words.iter() {
@@ -148,7 +148,7 @@ impl Printer {
         });
     }
 
-    pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState) {
+    pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, phase: f32) {
         // Too early?
         let diff = Instant::now().duration_since(self.next_time).as_millis();
         if diff > 0 {
@@ -198,5 +198,16 @@ impl Printer {
         self.onscreen.iter().for_each(|osw| {
             canvas.draw_text_align(osw.c.as_str(), osw.pos, &osw.style.font, &osw.style.paint, Align::Left);
         });
+
+        // Cursor
+        let mut paint = Paint::default();
+        paint.set_anti_alias(true);
+        paint.set_color(Color::GREEN);
+        paint.set_style(Style::Fill);
+        if phase >= 1.0 {
+            let (_, fm) = skia.font_main.metrics();
+            let rect = Rect::from_xywh(self.cursor.x, self.cursor.y + fm.descent, fm.avg_char_width / 6.0, fm.ascent);
+            canvas.draw_rect(rect, &paint);
+        }
     }
 }

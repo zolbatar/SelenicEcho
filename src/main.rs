@@ -1,11 +1,11 @@
 use crate::app_state::AppState;
+use crate::game::game_state::GameState;
 use crate::printer::Printer;
 use crate::skia::Skia;
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
 use std::process::exit;
 use std::time::{Duration, Instant};
-use crate::game::game_state::GameState;
 
 mod app_state;
 mod dialogue;
@@ -77,11 +77,11 @@ fn main() {
     loop {
         // Measure the time it took to render the previous frame
         let current_time = Instant::now();
-        app_state.phase = (current_time.duration_since(start).as_millis() as f32 / 250.0) % 2.0;
+        app_state.phase = (current_time.duration_since(start).as_millis() as f32 / 128.0) % 8.0;
 
         // Render!
         skia.set_matrix(&app_state.gfx);
-        printer.print_render(&mut skia, &app_state.gfx);
+        printer.print_render(&mut skia, &app_state.gfx, app_state.phase);
         // skia.test(app_state.gfx.width, app_state.gfx.height);
         unsafe {
             skia.flush(app_state.gfx.dpi, start.elapsed().as_secs_f32());
