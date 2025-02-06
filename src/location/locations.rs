@@ -1,10 +1,11 @@
 use crate::location;
+use crate::narration::narrations::NarrationID;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Location {
     pub id: LocationID,
-    pub text: String,
+    pub narration_id: NarrationID,
 }
 
 #[derive(Hash, Debug, Eq, PartialEq, Clone, Copy)]
@@ -14,7 +15,9 @@ pub enum LocationID {
 
 pub fn get_locations() -> HashMap<LocationID, Location> {
     let mut map = HashMap::new();
-    let l1 = location!(LocationID::InitialLocation, "BEEP...\nBEEP...BEEP...BEEP\n");
-    map.insert(l1.id, l1);
+    {
+        let l = location!(LocationID::InitialLocation, NarrationID::Awake);
+        map.insert(l.id, l);
+    }
     map
 }

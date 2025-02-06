@@ -91,7 +91,8 @@ impl Printer {
 
     pub fn print_location(&mut self, id: LocationID, game_state: &GameState) {
         let location = game_state.locations.get(&id).unwrap();
-        self.print(&location.text, PrintStyle::Normal);
+        let narration = game_state.narrations.get(&location.narration_id).unwrap();
+        self.print(&narration.text, PrintStyle::Normal);
     }
 
     pub fn print_dialogue(&mut self, id: DialogueNodeID, game_state: &GameState) {
@@ -142,10 +143,10 @@ impl Printer {
                 style,
             });
         }
-        self.queue.push_back(QueueItem {
+/*        self.queue.push_back(QueueItem {
             text: "\n".to_string(),
             style,
-        });
+        });*/
     }
 
     pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, phase: f32) {
