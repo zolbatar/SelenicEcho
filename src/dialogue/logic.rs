@@ -29,7 +29,7 @@ pub enum DialoguePersonID {
     Echo,
 }
 
-pub fn parse_dialogue() -> HashMap<DialogueNodeID, DialogueNode> {
+pub fn get_dialogues() -> HashMap<DialogueNodeID, DialogueNode> {
     let mut dialogues = HashMap::new();
     dialogue1(&mut dialogues);
     //    println!("{:?}", central_info);

@@ -1,5 +1,7 @@
 use crate::app_state::GFXState;
-use crate::dialogue::logic::{DialogueNode, DialogueNodeID, DialoguePersonID};
+use crate::dialogue::logic::{DialogueNodeID, DialoguePersonID};
+use crate::game::game_state::GameState;
+use crate::location::locations::LocationID;
 use crate::skia::Skia;
 use skia_safe::paint::Style;
 use skia_safe::utils::text_utils::Align;
@@ -87,8 +89,13 @@ impl Printer {
         }
     }
 
-    pub fn print_dialogue(&mut self, dialogue: DialogueNodeID, dialogues: HashMap<DialogueNodeID, DialogueNode>) {
-        let dialogue = dialogues.get(&dialogue).unwrap();
+    pub fn print_location(&mut self, id: LocationID, game_state: &GameState) {
+        let location = game_state.locations.get(&id).unwrap();
+        self.print(&location.text, PrintStyle::Normal);
+    }
+
+    pub fn print_dialogue(&mut self, id: DialogueNodeID, game_state: &GameState) {
+        let dialogue = game_state.dialogues.get(&id).unwrap();
         let style = match dialogue.speaker {
             DialoguePersonID::Player => PrintStyle::Normal,
             DialoguePersonID::Central => PrintStyle::AI,
@@ -99,10 +106,39 @@ impl Printer {
         self.print(&dialogue.text, style)
     }
 
+    fn split_keep_newlines(&self, text: &str) -> Vec<String> {
+        let mut result = Vec::new();
+        let mut current = String::new();
+
+        for c in text.chars() {
+            if c == '\n' {
+                if !current.is_empty() {
+                    result.push(current.clone());
+                    current.clear();
+                }
+                result.push("\n".to_string()); // Add newline as its own token
+            } else if c.is_whitespace() {
+                if !current.is_empty() {
+                    result.push(current.clone());
+                    current.clear();
+                }
+            } else {
+                current.push(c);
+            }
+        }
+
+        if !current.is_empty() {
+            result.push(current);
+        }
+
+        result
+    }
+    
     pub fn print(&mut self, text: &str, style: PrintStyle) {
-        for c in text.split_whitespace() {
+        let words = self.split_keep_newlines(text);
+        for c in words.iter() {
             self.queue.push_back(QueueItem {
-                text: c.trim().to_string(),
+                text: c.clone(),
                 style,
             });
         }

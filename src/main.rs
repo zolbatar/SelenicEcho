@@ -1,15 +1,16 @@
 use crate::app_state::AppState;
-use crate::dialogue::logic::{parse_dialogue, DialogueNodeID};
-use crate::narration::narrations::get_narrations;
 use crate::printer::Printer;
 use crate::skia::Skia;
 use sdl2::event::Event;
 use sdl2::video::GLProfile;
 use std::process::exit;
 use std::time::{Duration, Instant};
+use crate::game::game_state::GameState;
 
 mod app_state;
 mod dialogue;
+mod game;
+mod location;
 mod narration;
 mod printer;
 mod skia;
@@ -63,19 +64,16 @@ fn main() {
     let mut last_fps_check = Instant::now();
     let fps_check_interval = Duration::from_secs(1); // Check FPS every second
 
-    // Dialogue
-    let dialogues = parse_dialogue();
-    let narrations = get_narrations();
-
     // App state, skia etc.
     let mut app_state = AppState::new(window, dpi);
+    let game_state = GameState::new();
     let mut skia = Skia::new(&app_state);
     unsafe {
         skia.flush(app_state.gfx.dpi, 0.0);
     }
     let start = Instant::now();
     let mut printer = Printer::new(&skia);
-    printer.print_dialogue(DialogueNodeID::Dialogue1, dialogues);
+    game_state.start(&mut printer);
     loop {
         // Measure the time it took to render the previous frame
         let current_time = Instant::now();
