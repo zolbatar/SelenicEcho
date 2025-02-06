@@ -192,6 +192,10 @@ impl Printer {
 
                     // Delay for next word
                     self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
+                } else if c.text == "<NL>" {
+                    self.cursor.x = self.padding;
+                    self.cursor.y += style.font.size() * 1.25;
+                    self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * 32));
                 } else if c.text == "<bold>" {
                     self.bold_mode = true;
                 } else if c.text == "</bold>" {
