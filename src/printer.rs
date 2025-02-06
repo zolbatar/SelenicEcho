@@ -82,7 +82,7 @@ impl Printer {
             Arc::new(PrinterStyle {
                 paint: paint_white,
                 font: skia.font_ai.clone(),
-                font_bold: skia.font_ai.clone(),
+                font_bold: skia.font_ai_bold.clone(),
             }),
         );
 
@@ -124,12 +124,13 @@ impl Printer {
         for c in text.chars() {
             if command {
                 command = false;
-                if c == 'A' {
+                if c == '#' {
+                    result.push("<NL>".to_string());
+                } else if c == 'A' {
                     result.push("<ai>".to_string());
                 } else if c == 'a' {
                     result.push("</ai>".to_string());
-                }
-                if c == 'B' {
+                } else if c == 'B' {
                     result.push("<bold>".to_string());
                 } else if c == 'b' {
                     result.push("</bold>".to_string());
@@ -174,6 +175,8 @@ impl Printer {
     }
 
     pub fn print_render(&mut self, skia: &mut Skia, gfx: &GFXState, phase: f32) {
+        let ai_style = self.style.get(&PrintStyle::AI).unwrap().clone();
+
         // Too early?
         let diff = Instant::now().duration_since(self.next_time).as_millis();
         if diff > 0 {
@@ -193,6 +196,10 @@ impl Printer {
                     self.bold_mode = true;
                 } else if c.text == "</bold>" {
                     self.bold_mode = false;
+                } else if c.text == "<ai>" {
+                    self.ai_mode = true;
+                } else if c.text == "</ai>" {
+                    self.ai_mode = false;
                 } else {
                     let c_with_space = c.text + " ";
 
@@ -209,7 +216,11 @@ impl Printer {
                     let osw = OnScreenWord {
                         pos: self.cursor,
                         c: c_with_space,
-                        style,
+                        style: if !self.ai_mode {
+                            style
+                        } else {
+                            ai_style
+                        },
                         is_bold: self.bold_mode,
                     };
                     self.onscreen.push(osw);
