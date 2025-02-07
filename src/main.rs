@@ -1,5 +1,6 @@
 use crate::app_state::AppState;
 use crate::game::game_state::GameState;
+use crate::parser::process::Parser;
 use crate::printer::Printer;
 use crate::skia::Skia;
 use sdl2::event::Event;
@@ -12,6 +13,7 @@ mod dialogue;
 mod game;
 mod location;
 mod narration;
+mod parser;
 mod printer;
 mod skia;
 
@@ -26,7 +28,7 @@ fn main() {
     gl_attr.set_context_version(3, 3); // OpenGL 3.3
 
     // Create an SDL2 window
-    let window = video_subsystem.window("Simulation", 1400, 900).opengl().allow_highdpi().build().unwrap();
+    let window = video_subsystem.window("Selenic Echo", 1400, 900).opengl().allow_highdpi().build().unwrap();
 
     // Create an OpenGL context
     let _gl_context = window.gl_create_context().unwrap();
@@ -67,6 +69,7 @@ fn main() {
     // App state, skia etc.
     let mut app_state = AppState::new(window, dpi);
     let game_state = GameState::new();
+    let mut parser = Parser::new();
     let mut skia = Skia::new(&app_state);
     unsafe {
         skia.flush(app_state.gfx.dpi, 0.0);
@@ -82,7 +85,9 @@ fn main() {
         // Render!
         skia.set_matrix(&app_state.gfx);
         printer.print_render(&mut skia, &app_state.gfx, app_state.phase);
-        // skia.test(app_state.gfx.width, app_state.gfx.height);
+        if !printer.is_writing() {
+            parser.print(&mut skia, &mut printer);
+        }
         unsafe {
             skia.flush(app_state.gfx.dpi, start.elapsed().as_secs_f32());
         }
@@ -104,6 +109,35 @@ fn main() {
                 Event::Quit {
                     ..
                 } => exit(0),
+
+                // Keyboard
+                Event::KeyDown {
+                    keycode: Some(key),
+                    ..
+                } => {
+                    match key {
+                        sdl2::keyboard::Keycode::Backspace => {
+                            parser.process_backspace(&mut skia, &mut printer);
+                        }
+
+                        sdl2::keyboard::Keycode::Return => {
+                            parser.process_enter(&mut skia, &mut printer);
+                        }
+
+                        // Default case for other keys
+                        _ => {}
+                    }
+                }
+
+                Event::TextInput {
+                    text,
+                    ..
+                } => {
+                    if !printer.is_writing() {
+                        parser.process_key(text, &mut skia, &mut printer);
+                    }
+                }
+
                 _ => {}
             }
         }

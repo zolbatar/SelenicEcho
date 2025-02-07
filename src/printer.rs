@@ -18,10 +18,10 @@ pub enum PrintStyle {
     Echo,
 }
 
-struct PrinterStyle {
-    paint: Paint,
-    font: Font,
-    font_bold: Font,
+pub struct PrinterStyle {
+    pub paint: Paint,
+    pub font: Font,
+    pub font_bold: Font,
 }
 
 struct OnScreenWord {
@@ -37,18 +37,18 @@ struct QueueItem {
 }
 
 pub struct Printer {
-    cursor: Point,
+    pub cursor: Point,
     queue: VecDeque<QueueItem>,
     onscreen: Vec<OnScreenWord>,
-    padding: f32,
+    pub(crate) padding: f32,
     v_adjust: f32,
     next_time: Instant,
-    style: HashMap<PrintStyle, Arc<PrinterStyle>>,
+    pub style: HashMap<PrintStyle, Arc<PrinterStyle>>,
     bold_mode: bool,
     ai_mode: bool,
 }
 
-const TEXT_SPEED: u64 = 5;//25;
+const TEXT_SPEED: u64 = 1; //25;
 
 impl Printer {
     pub fn new(skia: &Skia) -> Printer {
@@ -98,6 +98,10 @@ impl Printer {
             bold_mode: false,
             ai_mode: false,
         }
+    }
+
+    pub fn is_writing(&self) -> bool {
+        !self.queue.is_empty()
     }
 
     pub fn print_location(&mut self, id: LocationID, game_state: &GameState) {
@@ -181,11 +185,9 @@ impl Printer {
             self.onscreen.iter_mut().for_each(|screen| {
                 screen.pos.y -= self.v_adjust;
             });
-            
+
             // And remove any that are offscreen now.
-            self.onscreen.retain(|screen| {
-                screen.pos.y >= self.padding
-            });
+            self.onscreen.retain(|screen| screen.pos.y >= self.padding);
 
             // Adjust cursor
             self.cursor.y -= self.v_adjust;
@@ -247,7 +249,7 @@ impl Printer {
                         pos: self.cursor,
                         c: c_with_space,
                         style: if !self.ai_mode {
-                            style
+                            style.clone()
                         } else {
                             ai_style
                         },
@@ -260,6 +262,12 @@ impl Printer {
 
                     // Delay for next word
                     self.next_time = Instant::now().add(Duration::from_millis(TEXT_SPEED * length as u64));
+
+                    // Last one
+                    if self.queue.is_empty() {
+                        self.cursor.x = self.padding;
+                        self.double_linefeed(style.clone(), gfx);
+                    }
                 }
             }
         }
@@ -281,14 +289,23 @@ impl Printer {
         });
 
         // Cursor
-        let mut paint = Paint::default();
-        paint.set_anti_alias(true);
-        paint.set_color(Color::YELLOW);
-        paint.set_style(Style::Fill);
         if phase >= 1.0 {
             let (_, fm) = skia.font_main.metrics();
-            let rect = Rect::from_xywh(self.cursor.x, self.cursor.y + fm.descent, fm.avg_char_width / 6.0, fm.ascent);
-            canvas.draw_rect(rect, &paint);
+            let mut paint = Paint::default();
+            paint.set_anti_alias(true);
+            let x = self.cursor.x;
+            let y = self.cursor.y + fm.descent;
+            if self.is_writing() {
+                paint.set_color(Color::RED);
+                paint.set_style(Style::Fill);
+                let rect = Rect::from_xywh(x, y, fm.avg_char_width / 6.0, fm.ascent);
+                canvas.draw_rect(rect, &paint);
+            } else {
+                paint.set_color(Color::GREEN);
+                paint.set_style(Style::Stroke);
+                paint.set_stroke_width(1.0);
+                canvas.draw_line(Point::new(x, y - 2.0), Point::new(x, y + fm.ascent + 2.0), &paint);
+            }
         }
     }
 }
