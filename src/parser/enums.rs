@@ -8,6 +8,5 @@ pub enum Verbs {
     Run,
     Take,
     Talk,
-    Turn,
     Use
 }

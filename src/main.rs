@@ -15,6 +15,7 @@ mod location;
 mod narration;
 mod parser;
 mod printer;
+mod props;
 mod skia;
 
 fn main() {
@@ -68,7 +69,7 @@ fn main() {
 
     // App state, skia etc.
     let mut app_state = AppState::new(window, dpi);
-    let game_state = GameState::new();
+    let mut game_state = GameState::new();
     let mut parser = Parser::new();
     let mut skia = Skia::new(&app_state);
     unsafe {
@@ -117,11 +118,11 @@ fn main() {
                 } => {
                     match key {
                         sdl2::keyboard::Keycode::Backspace => {
-                            parser.process_backspace(&mut skia, &mut printer);
+                            parser.process_backspace();
                         }
 
                         sdl2::keyboard::Keycode::Return => {
-                            parser.process_enter(&mut skia, &mut printer);
+                            parser.process_enter(&mut game_state, &mut printer);
                         }
 
                         // Default case for other keys
@@ -134,7 +135,7 @@ fn main() {
                     ..
                 } => {
                     if !printer.is_writing() {
-                        parser.process_key(text, &mut skia, &mut printer);
+                        parser.process_key(text);
                     }
                 }
 
